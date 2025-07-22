@@ -1,6 +1,30 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Build output - Note: You may want to commit dist/output.css for Cloudflare Pages
+# If you have a build command in Cloudflare Pages, uncomment the line below
+dist/
+
+# Environment files
+.env
+.env.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test results
 test-results/
 playwright-report/
-.DS_Store
+
+# Logs
 *.log
-package-lock.json
+npm-debug.log*
