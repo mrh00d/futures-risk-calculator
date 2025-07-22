@@ -6,7 +6,11 @@
   "scripts": {
     "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
-    "build": "npm run build:css",
+    "build": "npm run build:css && npm run version:update",
+    "build:timestamp": "npm run build:css && npm run version:timestamp",
+    "version:update": "node scripts/update-version.js",
+    "version:timestamp": "node scripts/update-version-timestamp.js",
+    "version:bump": "npm version patch && npm run version:update",
     "dev": "npm run watch:css",
     "test": "playwright test",
     "test:ui": "playwright test --ui",

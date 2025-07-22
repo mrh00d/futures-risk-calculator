@@ -36,6 +36,16 @@
     <link rel="stylesheet" href="dist/output.css">
     <script src="calculator.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        // Register service worker for cache management
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered:', registration))
+                    .catch(error => console.log('SW registration failed:', error));
+            });
+        }
+    </script>
 </head>
 <body x-data="riskCalculator()" x-init="init(); $store.darkMode.init()" class="bg-gray-100 dark:bg-gray-900 p-4 transition-colors">
     <div class="max-w-7xl mx-auto">

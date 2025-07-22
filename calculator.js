@@ -1,6 +1,6 @@
 // Futures Trading Risk Management Calculator
 function riskCalculator() {
-    return {
+    const component = {
         // Futures contracts data with ticks per point
         contracts: {
             MNQ: { name: "Micro E-mini Nasdaq-100", tickValue: 0.50, pointValue: 2, ticksPerPoint: 4, defaultCommission: 1.35 },
@@ -388,5 +388,7 @@ function riskCalculator() {
                 button.disabled = false;
             }
         }
-    }
+    };
+    
+    return component;
 }
