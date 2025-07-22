@@ -63,12 +63,20 @@ function riskCalculator() {
         target3Contracts: 0,
         target3Points: 40,
         
+        // Sharing
+        showShareModal: false,
+        shareURL: '',
+        copied: false,
+        
         // Initialize
         init() {
             this.commissionPerRT = this.contracts[this.selectedContract].defaultCommission;
             this.$watch('selectedContract', (value) => {
                 this.commissionPerRT = this.contracts[value].defaultCommission;
             });
+            
+            // Load from URL if parameters exist
+            this.loadFromURL();
         },
         
         // Update prop firm target
@@ -256,6 +264,128 @@ function riskCalculator() {
                     this.target2Points = Math.round((this.ticksLost / this.contract.ticksPerPoint) * 3);
                     this.target3Points = Math.round((this.ticksLost / this.contract.ticksPerPoint) * 5);
                     break;
+            }
+        },
+        
+        // URL Sharing functionality
+        shareAsURL() {
+            const params = new URLSearchParams({
+                // Basic settings
+                c: this.selectedContract,
+                wt: this.winningTrades,
+                lt: this.losingTrades,
+                tg: this.ticksGained,
+                tl: this.ticksLost,
+                nc: this.numContracts,
+                na: this.numAccounts,
+                cr: this.commissionPerRT,
+                pf: this.selectedPropFirm,
+                pt: this.eaProfitTarget,
+                cd: this.customDays,
+                
+                // Target simulation
+                ts: this.useTargetSimulation ? '1' : '0',
+                t1c: this.target1Contracts,
+                t1p: this.target1Points,
+                t2c: this.target2Contracts,
+                t2p: this.target2Points,
+                t3c: this.target3Contracts,
+                t3p: this.target3Points,
+            });
+            
+            this.shareURL = window.location.origin + window.location.pathname + '?' + params.toString();
+            this.showShareModal = true;
+            this.copied = false;
+        },
+        
+        copyShareURL() {
+            navigator.clipboard.writeText(this.shareURL).then(() => {
+                this.copied = true;
+                setTimeout(() => { this.copied = false; }, 2000);
+            });
+        },
+        
+        loadFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            
+            if (params.has('c')) {
+                // Load basic settings
+                this.selectedContract = params.get('c') || 'MNQ';
+                this.winningTrades = parseInt(params.get('wt')) || 2;
+                this.losingTrades = parseInt(params.get('lt')) || 2;
+                this.ticksGained = parseInt(params.get('tg')) || 120;
+                this.ticksLost = parseInt(params.get('tl')) || 68;
+                this.numContracts = parseInt(params.get('nc')) || 1;
+                this.numAccounts = parseInt(params.get('na')) || 1;
+                this.commissionPerRT = parseFloat(params.get('cr')) || this.contracts[this.selectedContract].defaultCommission;
+                this.selectedPropFirm = params.get('pf') || 'custom';
+                this.eaProfitTarget = parseInt(params.get('pt')) || 6000;
+                this.customDays = parseInt(params.get('cd')) || 235;
+                
+                // Load target simulation
+                this.useTargetSimulation = params.get('ts') === '1';
+                this.target1Contracts = parseInt(params.get('t1c')) || 0;
+                this.target1Points = parseInt(params.get('t1p')) || 10;
+                this.target2Contracts = parseInt(params.get('t2c')) || 0;
+                this.target2Points = parseInt(params.get('t2p')) || 20;
+                this.target3Contracts = parseInt(params.get('t3c')) || 0;
+                this.target3Points = parseInt(params.get('t3p')) || 40;
+            }
+        },
+        
+        // Save as image functionality
+        async saveAsImage() {
+            // Show loading state
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = 'Generating...';
+            button.disabled = true;
+            
+            try {
+                // Hide buttons temporarily
+                const buttons = document.querySelectorAll('button');
+                buttons.forEach(btn => btn.style.display = 'none');
+                
+                // Capture the main content
+                const element = document.querySelector('.max-w-7xl');
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const canvas = await html2canvas(element, {
+                    backgroundColor: isDarkMode ? '#111827' : '#f3f4f6',
+                    scale: 2,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    onclone: (clonedDoc) => {
+                        // Ensure dark mode styles are applied to the cloned document
+                        if (isDarkMode) {
+                            clonedDoc.documentElement.classList.add('dark');
+                            // Apply inline styles for better capture
+                            const clonedElement = clonedDoc.querySelector('.max-w-7xl');
+                            if (clonedElement) {
+                                clonedElement.style.backgroundColor = '#111827';
+                                clonedElement.style.color = '#f3f4f6';
+                            }
+                        }
+                    }
+                });
+                
+                // Restore buttons
+                buttons.forEach(btn => btn.style.display = '');
+                
+                // Create download link
+                const link = document.createElement('a');
+                link.download = `futures-risk-analysis-${this.selectedContract}-${new Date().toISOString().split('T')[0]}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                
+                // Restore button
+                button.innerHTML = originalText;
+                button.disabled = false;
+            } catch (error) {
+                console.error('Error saving image:', error);
+                alert('Error saving image. Please try again.');
+                button.innerHTML = originalText;
+                button.disabled = false;
             }
         }
     }
