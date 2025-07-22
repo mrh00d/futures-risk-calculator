@@ -1,112 +1,269 @@
 # Futures Trading Risk Management Calculator
 
 ## Project Overview
-A single-page HTML application using Alpine.js and Tailwind CSS to calculate risk management metrics for futures trading. The calculator allows users to select different futures contracts and input their trading statistics to see profitability projections.
+A comprehensive web-based futures trading risk management calculator built with Alpine.js and Tailwind CSS. The application helps traders calculate risk/reward ratios, profit projections, and simulate multiple trading scenarios across various futures contracts.
+
+## Architecture
+
+### File Structure
+```
+/
+├── index.html          # Main application file
+├── calculator.js       # Alpine.js component logic
+├── styles.css         # Custom styles and dark mode enhancements
+├── dist/
+│   └── output.css     # Built Tailwind CSS (generated)
+├── src/
+│   └── input.css      # Tailwind source file
+├── package.json       # Dependencies and build scripts
+├── tailwind.config.js # Tailwind configuration
+├── postcss.config.js  # PostCSS configuration
+├── _headers          # Cloudflare Pages headers for caching
+└── tests/
+    └── risk-calculator.spec.js  # Playwright tests
+```
+
+### Technologies
+- **Alpine.js 3.x** - Reactive UI framework
+- **Tailwind CSS 3.x** - Utility-first CSS framework with dark mode
+- **html2canvas** - Client-side screenshot generation
+- **Playwright** - End-to-end testing
+- **Cloudflare Pages** - Deployment platform
+
+### Build Process
+```bash
+# Install dependencies
+npm install
+
+# Build CSS for production
+npm run build
+
+# Run tests
+npm test
+```
 
 ## Features
 
-### 1. Futures Contract Selection
-- Dropdown to select different futures contracts (MNQ, ES, NQ, YM, RTY, CL, GC, etc.)
-- Each contract has predefined tick values and point values
-- Contracts data includes:
-  - Symbol
-  - Name
-  - Tick size
-  - Tick value
-  - Point value
-  - Commission per round trip
+### 1. Futures Contract Support
+Comprehensive support for major futures contracts:
+- **Micro contracts**: MNQ, MES, MYM, M2K, MCL, MGC
+- **E-mini contracts**: ES, NQ, YM, RTY
+- **Commodities**: CL (Crude Oil), GC (Gold)
 
-### 2. Input Fields
-- Account information
-- Trade statistics:
-  - Number of winning trades
-  - Number of losing trades
-  - Ticks gained per winning trade
-  - Ticks lost per losing trade
-  - Number of contracts traded
-- Commission per round trip
-- Number of accounts
-- EA profit target
-- Trading days per month
+Each contract includes:
+- Tick value and point value
+- Ticks per point conversion
+- Default commission rates
 
-### 3. Calculations
-- Win/Loss percentage
-- R ratio (Risk:Reward ratio)
-- Average loss/gain per trade
-- Daily P&L (gross and net after commissions)
-- Weekly P&L projections
-- Monthly P&L projections
-- Yearly/custom period projections
-- Days to reach EA profit target
+### 2. Risk Management Features
 
-### 4. Display Sections
-- Header stats (account info, daily/weekly/monthly P&L)
-- Trade count and statistics
-- Risk:Reward analysis table
-- Daily/weekly/monthly gain projections
-- Custom period calculations
-- EA profit target tracking
+#### Basic Risk/Reward Analysis
+- Stop loss and profit target configuration
+- Real-time R:R ratio calculation
+- Commission impact on profitability
+- Win rate and expectancy calculations
 
-## Technical Implementation
+#### Advanced Profit Target Simulation
+- Multiple exit levels (up to 3 targets)
+- Contract distribution across targets
+- Weighted average exit calculation
+- Effective R:R based on partial exits
+- Preset strategies (Conservative, Moderate, Aggressive)
 
-### Technologies
-- HTML5
-- Alpine.js for reactive data and calculations
-- Tailwind CSS for styling
-- No build process required - runs directly in browser
+#### Copy Trading Simulation
+- Simulate trading across multiple accounts (1-20)
+- Aggregate P&L calculations
+- Account scaling visualization
 
-### Data Structure
+### 3. Prop Firm Integration
+Pre-configured evaluation targets for:
+- **Topstep**: $50K Express, $100K, $150K
+- **Elite Trader Funding**: $25K, $50K, $100K, $150K
+- **Take Profit Trader**: $25K, $50K, $100K
+- **My Funded Futures**: $25K, $50K, $100K, $150K
+- **Bluesky**: $25K, $50K, $100K
+
+### 4. User Experience Features
+
+#### Dark Mode
+- System preference detection
+- Manual toggle with persistence
+- Optimized contrast and readability
+- Full theme support in saved images
+
+#### Share & Save
+- URL-based configuration sharing
+- Image export with html2canvas
+- All settings preserved in share links
+- Dark mode respected in exports
+
+#### Real-time Calculations
+- Tick/Point converter
+- Expectancy calculator
+- Daily/Weekly/Monthly/Yearly projections
+- Custom period projections
+- Progress tracking to profit targets
+
+## Data Model
+
 ```javascript
 {
-  // Futures contracts data
-  contracts: {
-    MNQ: { name: "Micro E-mini Nasdaq-100", tickValue: 0.50, pointValue: 2, defaultCommission: 1.35 },
-    ES: { name: "E-mini S&P 500", tickValue: 12.50, pointValue: 50, defaultCommission: 2.50 },
-    // ... more contracts
-  },
-  
-  // User inputs
+  // Contract selection
   selectedContract: 'MNQ',
+  contracts: { /* contract definitions */ },
+  
+  // Trade parameters
   winningTrades: 2,
   losingTrades: 2,
   ticksGained: 120,
   ticksLost: 68,
   numContracts: 1,
   commissionPerRT: 1.35,
+  
+  // Account management
   numAccounts: 1,
+  selectedPropFirm: 'custom',
   eaProfitTarget: 6000,
+  
+  // Profit target simulation
+  useTargetSimulation: false,
+  target1Contracts: 0,
+  target1Points: 10,
+  target2Contracts: 0,
+  target2Points: 20,
+  target3Contracts: 0,
+  target3Points: 40,
+  
+  // UI state
+  showShareModal: false,
+  shareURL: '',
+  copied: false,
+  
+  // Settings
   tradingDaysPerMonth: 21,
   customDays: 235,
-  
-  // Calculated values (computed properties)
-  totalTrades,
-  winLossPercent,
-  rRatio,
-  grossDailyGain,
-  totalCommissions,
-  netDailyGain,
-  weeklyGain,
-  monthlyGain,
-  customPeriodGain,
-  daysToEATarget
+  converterTicks: 0,
+  converterPoints: 0
 }
 ```
 
-## UI Layout
-- Clean, professional design similar to the original
-- Top Gun Trading branding
-- Color coding: Green for profits, red for losses
-- Responsive layout that works on desktop and mobile
-- Clear sections for different calculation areas
+## Key Calculations
 
-## File Structure
-- `index.html` - Single file containing all HTML, CSS, and JavaScript
-- Uses CDN links for Alpine.js and Tailwind CSS
-- Self-contained, no external dependencies needed
+### Expectancy
+```javascript
+expectancy = (winRate * avgWinAmount) - ((1 - winRate) * avgLossAmount)
+```
 
-## Future Enhancements (not in initial version)
-- Save/load scenarios
-- Print-friendly version
-- Export to PDF/CSV
-- Multiple account management
-- Historical data integration
+### Risk:Reward Ratio
+- Simple mode: `ticksGained / ticksLost`
+- Advanced mode: Weighted average based on partial exits
+
+### Profit Projections
+- Accounts for commissions on both sides
+- Scales across multiple accounts
+- Factors in win rate for realistic projections
+
+## Testing
+
+First install Playwright browsers:
+```bash
+npx playwright install
+```
+
+Then run comprehensive tests with:
+```bash
+npm test
+```
+
+Tests cover:
+- Basic calculations
+- R:R ratios with different scenarios
+- Expectancy calculations
+- Multi-account simulations
+- Profit target simulations
+- URL parameter encoding/decoding
+- Dark mode toggle and persistence
+- Share modal functionality
+- Image export capabilities
+
+## Deployment
+
+Deployed on Cloudflare Pages with:
+- Automatic builds on push
+- No-cache headers for always-fresh content
+- Security headers (CSP, X-Frame-Options, etc.)
+- Global CDN distribution
+
+## Performance Optimizations
+
+1. **Tailwind Production Build**
+   - Purged unused styles
+   - Minified CSS output
+   - ~180ms build time
+
+2. **Caching Strategy**
+   - No-cache headers ensure fresh content
+   - CDN resources cached by browser
+   - No service workers (removed for simplicity)
+
+3. **Alpine.js Optimizations**
+   - Computed properties for derived values
+   - Minimal DOM updates
+   - Efficient data binding
+
+## Security Considerations
+
+- CSP headers prevent XSS attacks
+- No external data connections
+- All calculations client-side
+- URL parameters sanitized
+- No sensitive data storage
+
+## Browser Support
+
+- Modern browsers with ES6 support
+- Chrome, Firefox, Safari, Edge
+- Mobile responsive design
+- Dark mode requires CSS custom properties support
+
+## Known Limitations
+
+1. No data persistence (by design)
+2. Image export depends on html2canvas capabilities
+3. Share URLs can become long with many parameters
+4. Maximum 20 accounts in simulation
+
+## Future Enhancements
+
+- [ ] Historical trade import
+- [ ] Advanced statistics (Sharpe, Sortino)
+- [ ] Trade journal integration
+- [ ] API for prop firm data
+- [ ] Mobile app version
+
+## Maintenance Notes
+
+When updating:
+1. Run `npm run build` for CSS changes
+2. Test dark mode thoroughly
+3. Verify share URL functionality
+4. Run full test suite
+5. Clear Cloudflare cache if needed
+
+## Commands Reference
+
+```bash
+# Development
+npm run dev          # Watch CSS changes
+
+# Building
+npm run build        # Production build
+npm run build:css    # Just build CSS
+
+# Testing
+npm test            # Run all tests
+npm run test:headed # Run tests with browser UI
+
+# Deployment
+git push            # Auto-deploys to Cloudflare Pages
+```

@@ -374,7 +374,7 @@ function riskCalculator() {
                 
                 // Create download link
                 const link = document.createElement('a');
-                link.download = `futures-risk-analysis-${this.selectedContract}-${new Date().toISOString().split('T')[0]}.png`;
+                link.download = `profitpath-${this.selectedContract}-${new Date().toISOString().split('T')[0]}.png`;
                 link.href = canvas.toDataURL();
                 link.click();
                 

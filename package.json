@@ -1,7 +1,9 @@
 {
-  "name": "futures-risk-calculator",
+  "name": "profitpath",
   "version": "1.0.0",
-  "description": "Futures Trading Risk Management Calculator",
+  "description": "ProfitPath - Futures Trading Performance Calculator",
+  "author": "mrhood",
+  "homepage": "https://profitpath.trade",
   "type": "module",
   "scripts": {
     "build:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",

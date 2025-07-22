@@ -260,4 +260,95 @@ test.describe('Futures Risk Calculator', () => {
       expect(ticksResult).toContain('100 ticks');
     });
   });
+
+  test.describe('URL Sharing', () => {
+    test('should open share modal and generate URL', async ({ page }) => {
+      // Set some values
+      await page.fill('input[x-model="winningTrades"]', '3');
+      await page.fill('input[x-model="losingTrades"]', '1');
+      
+      // Click share button
+      await page.click('button:has-text("Share")');
+      
+      // Verify modal is visible
+      await expect(page.locator('text="Share Your Configuration"')).toBeVisible();
+      
+      // Verify URL contains parameters
+      const shareURL = await page.inputValue('input[x-model="shareURL"]');
+      expect(shareURL).toContain('wt=3');
+      expect(shareURL).toContain('lt=1');
+      
+      // Close modal
+      await page.click('button:has-text("Close")');
+      await expect(page.locator('text="Share Your Configuration"')).not.toBeVisible();
+    });
+
+    test('should load configuration from URL parameters', async ({ page }) => {
+      // Navigate with parameters
+      await page.goto('/?c=ES&wt=5&lt=3&tg=200&tl=100&nc=2&cr=2.5&na=3&pf=elite_50k&pt=2750&cd=180');
+      
+      await page.waitForLoadState('networkidle');
+      
+      // Verify contract selection
+      const selectedContract = await page.inputValue('select:has-text("Select Futures Contract")');
+      expect(selectedContract).toBe('ES');
+      
+      // Verify trade parameters
+      expect(await page.inputValue('input[x-model="winningTrades"]')).toBe('5');
+      expect(await page.inputValue('input[x-model="losingTrades"]')).toBe('3');
+      expect(await page.inputValue('input[x-model="ticksGained"]')).toBe('200');
+      expect(await page.inputValue('input[x-model="ticksLost"]')).toBe('100');
+      expect(await page.inputValue('input[x-model="numContracts"]')).toBe('2');
+      expect(await page.inputValue('input[x-model="numAccounts"]')).toBe('3');
+    });
+  });
+
+  test.describe('Dark Mode', () => {
+    test('should toggle dark mode', async ({ page }) => {
+      // Check initial state
+      const htmlElement = page.locator('html');
+      const initialDarkMode = await htmlElement.evaluate(el => el.classList.contains('dark'));
+      
+      // Find and click the dark mode toggle button
+      const darkModeButton = page.locator('button[title*="Mode"]').first();
+      await darkModeButton.click();
+      
+      // Verify dark mode toggled
+      const afterToggle = await htmlElement.evaluate(el => el.classList.contains('dark'));
+      expect(afterToggle).toBe(!initialDarkMode);
+      
+      // Toggle back
+      await darkModeButton.click();
+      const afterSecondToggle = await htmlElement.evaluate(el => el.classList.contains('dark'));
+      expect(afterSecondToggle).toBe(initialDarkMode);
+    });
+    
+    test('should persist dark mode preference', async ({ page, context }) => {
+      // Enable dark mode
+      const darkModeButton = page.locator('button[title*="Mode"]').first();
+      await darkModeButton.click();
+      
+      // Verify dark mode is on
+      const htmlElement = page.locator('html');
+      await expect(htmlElement).toHaveClass(/dark/);
+      
+      // Check localStorage
+      const darkModeValue = await page.evaluate(() => localStorage.getItem('darkMode'));
+      expect(darkModeValue).toBe('true');
+    });
+  });
+
+  test.describe('Image Export', () => {
+    test('should show save image button', async ({ page }) => {
+      // Verify save image button exists
+      const saveButton = page.locator('button:has-text("Save Image")');
+      await expect(saveButton).toBeVisible();
+      
+      // Click should trigger html2canvas (we can't test actual download in Playwright easily)
+      await saveButton.click();
+      
+      // Button should be re-enabled after processing
+      await expect(saveButton).toBeEnabled();
+    });
+  });
 });
