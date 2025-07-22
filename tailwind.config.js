@@ -3,7 +3,7 @@ module.exports = {
   content: [
     "./index.html",
     "./calculator.js",
-    "./**/*.{html,js}"
+    "!./node_modules/**/*"
   ],
   darkMode: 'class',
   theme: {
