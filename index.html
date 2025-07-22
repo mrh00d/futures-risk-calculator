@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futures Trading Risk Management Calculator</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="calculator.js"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div x-data="riskCalculator()" x-init="init()" class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-4">
+            <h1 class="text-3xl font-bold text-center mb-2">
+                <span x-text="selectedContract"></span> Trade Analysis
+            </h1>
+            
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-sm">
+                <div class="border p-2">
+                    <div class="font-semibold">Accounts</div>
+                    <div x-text="numAccounts" class="text-center text-lg font-bold"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Daily Winners</div>
+                    <div x-text="winningTrades" class="text-center"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Daily Losers</div>
+                    <div x-text="losingTrades" class="text-center"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Gross Daily</div>
+                    <div x-text="'$' + grossDailyGainTotal.toFixed(2)" class="text-center"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Commissions</div>
+                    <div x-text="'$' + totalCommissions.toFixed(2)" class="text-center"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Net P/L (Total)</div>
+                    <div x-text="'$' + netDailyGainTotal.toFixed(2)" class="text-center font-bold" 
+                         :class="netDailyGainTotal >= 0 ? 'text-green-600' : 'text-red-600'"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Weekly Total</div>
+                    <div x-text="'$' + (netDailyGainTotal * 5).toFixed(2)" class="text-center"></div>
+                </div>
+                <div class="border p-2">
+                    <div class="font-semibold">Monthly Total</div>
+                    <div x-text="'$' + (netDailyGainTotal * tradingDaysPerMonth).toFixed(2)" class="text-center"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Left Column - Contract Selection and Trade Stats -->
+            <div class="space-y-4">
+                <!-- Contract Selection -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Select Futures Contract</h3>
+                    <select x-model="selectedContract" class="w-full border rounded p-2 mb-3">
+                        <template x-for="(contract, symbol) in contracts" :key="symbol">
+                            <option :value="symbol" x-text="symbol + ' - ' + contract.name"></option>
+                        </template>
+                    </select>
+                    
+                    <!-- Tick/Point Info -->
+                    <div class="bg-blue-50 p-3 rounded text-sm">
+                        <div class="font-semibold mb-1">Contract Details:</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>Tick Value: $<span x-text="contract.tickValue.toFixed(2)"></span></div>
+                            <div>Point Value: $<span x-text="contract.pointValue"></span></div>
+                            <div>Ticks per Point: <span x-text="contract.ticksPerPoint"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trade Count/Stats -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Trade Count/Stats</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <label>Winning Trades</label>
+                            <input type="number" x-model.number="winningTrades" class="w-20 border rounded px-2">
+                        </div>
+                        <div class="flex justify-between">
+                            <label>Losing Trades</label>
+                            <input type="number" x-model.number="losingTrades" class="w-20 border rounded px-2">
+                        </div>
+                        <div class="flex justify-between">
+                            <label>Total Trades</label>
+                            <div x-text="totalTrades" class="font-semibold"></div>
+                        </div>
+                        <div class="flex justify-between">
+                            <label>Win/Loss %</label>
+                            <div x-text="winLossPercent + '%'" class="font-semibold"></div>
+                        </div>
+                        <div class="flex justify-between">
+                            <label>
+                                <span>R ratio</span>
+                                <span x-show="useTargetSimulation" class="text-xs text-blue-600">(Effective)</span>
+                            </label>
+                            <div x-text="rRatio + ':1'" class="font-semibold"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Expectancy Display -->
+                    <div class="mt-3 pt-3 border-t">
+                        <h4 class="text-sm font-semibold mb-2">Expectancy</h4>
+                        <div class="bg-gray-50 p-2 rounded text-sm space-y-1">
+                            <div class="flex justify-between">
+                                <span>Per Trade:</span>
+                                <span class="font-semibold" :class="expectancy >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    $<span x-text="expectancy.toFixed(2)"></span>
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>In R terms:</span>
+                                <span class="font-semibold" x-text="expectancyR.toFixed(3) + 'R'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>% of Risk:</span>
+                                <span class="font-semibold" x-text="expectancyPercent.toFixed(1) + '%'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Copy Trading Accounts -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Copy Trading Simulation</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm">Number of Accounts</label>
+                            <input type="number" x-model.number="numAccounts" min="1" max="20" class="w-full border rounded px-2">
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            Simulates trading the same strategy across multiple accounts
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded text-sm">
+                            <div class="flex justify-between">
+                                <span>Per Account Daily:</span>
+                                <span class="font-semibold" x-text="'$' + netDailyGain.toFixed(2)"></span>
+                            </div>
+                            <div class="flex justify-between font-bold">
+                                <span>All Accounts Daily:</span>
+                                <span :class="netDailyGainTotal >= 0 ? 'text-green-600' : 'text-red-600'" 
+                                      x-text="'$' + netDailyGainTotal.toFixed(2)"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column - Risk/Reward Analysis -->
+            <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Risk/Reward Analysis</h3>
+                    
+                    <!-- Mode Toggle -->
+                    <div class="bg-gray-100 rounded-lg p-3 mb-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm font-medium">Exit Strategy Mode:</label>
+                                <span class="text-sm font-bold" :class="useTargetSimulation ? 'text-blue-600' : 'text-green-600'" 
+                                      x-text="useTargetSimulation ? 'Advanced (Multiple Targets)' : 'Simple (Fixed Target)'"></span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="useTargetSimulation" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-sm">Contracts per Trade</label>
+                                <input type="number" x-model.number="numContracts" class="w-full border rounded px-2">
+                            </div>
+                            <div>
+                                <label class="text-sm">Commission per R/T</label>
+                                <input type="number" x-model.number="commissionPerRT" step="0.01" class="w-full border rounded px-2">
+                            </div>
+                        </div>
+                        
+                        <!-- Stop Loss (Always shown) -->
+                        <div class="bg-red-100 p-3 rounded">
+                            <label class="text-sm font-semibold">Stop Loss (Ticks)</label>
+                            <input type="number" x-model.number="ticksLost" class="w-full border rounded px-2 mb-2">
+                            <div class="text-xs text-gray-600">
+                                = <span x-text="(ticksLost / contract.ticksPerPoint).toFixed(2)"></span> points
+                            </div>
+                        </div>
+                        
+                        <!-- Simple Mode: Single Target -->
+                        <div x-show="!useTargetSimulation" class="bg-green-100 p-3 rounded">
+                            <label class="text-sm font-semibold">Profit Target (Ticks)</label>
+                            <input type="number" x-model.number="ticksGained" class="w-full border rounded px-2 mb-2">
+                            <div class="text-xs text-gray-600">
+                                = <span x-text="(ticksGained / contract.ticksPerPoint).toFixed(2)"></span> points
+                            </div>
+                            <div class="text-xs text-gray-600 mt-1">
+                                R:R = <span x-text="(ticksGained / ticksLost).toFixed(2)"></span>:1
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Mode: Multiple Targets -->
+                        <div x-show="useTargetSimulation" class="space-y-2">
+                            <div class="bg-green-100 p-3 rounded">
+                                <div class="font-semibold text-sm mb-2">Profit Targets</div>
+                                <div class="text-xs text-gray-600 mb-2">
+                                    Define how many contracts to exit at each target level
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Summary -->
+                    <div class="border-t pt-3 mt-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-red-50 p-2 rounded">
+                                <div class="text-xs text-gray-600">Max Loss (1 Account)</div>
+                                <div class="font-semibold text-red-600" x-text="'-$' + maxTradeLoss.toFixed(2)"></div>
+                            </div>
+                            <div class="bg-green-50 p-2 rounded">
+                                <div class="text-xs text-gray-600">Risk:Reward</div>
+                                <div class="font-semibold text-lg text-green-600" x-text="rValue.toFixed(2) + ':1'"></div>
+                            </div>
+                        </div>
+                        <div x-show="numAccounts > 1" class="text-xs text-gray-600 mt-2">
+                            Max Loss All Accounts: <span class="font-semibold text-red-600" x-text="'-$' + (maxTradeLoss * numAccounts).toFixed(2)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Target Configuration (moved inside main risk section) -->
+                <div x-show="useTargetSimulation" class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Target Configuration</h3>
+                    <div class="space-y-3">
+                        <div class="space-y-2">
+                            <!-- Quick Setup Buttons -->
+                            <div class="flex space-x-2 text-xs">
+                                <button @click="setupTargets('conservative')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
+                                    Conservative
+                                </button>
+                                <button @click="setupTargets('moderate')" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
+                                    Moderate
+                                </button>
+                                <button @click="setupTargets('aggressive')" class="bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">
+                                    Aggressive
+                                </button>
+                            </div>
+                            
+                            <!-- Target 1 -->
+                            <div class="bg-gray-50 p-2 rounded">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-xs">Contracts</label>
+                                        <input type="number" x-model.number="target1Contracts" min="0" class="w-full border rounded px-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs">Exit Points</label>
+                                        <input type="number" x-model.number="target1Points" min="0" class="w-full border rounded px-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs">Ticks</label>
+                                        <div class="text-sm" x-text="target1Points * contract.ticksPerPoint"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Target 2 -->
+                            <div class="bg-gray-50 p-2 rounded">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-xs">Contracts</label>
+                                        <input type="number" x-model.number="target2Contracts" min="0" class="w-full border rounded px-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs">Exit Points</label>
+                                        <input type="number" x-model.number="target2Points" min="0" class="w-full border rounded px-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs">Ticks</label>
+                                        <div class="text-sm" x-text="target2Points * contract.ticksPerPoint"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Target 3 -->
+                            <div class="bg-gray-50 p-2 rounded">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-xs">Contracts</label>
+                                        <input type="number" x-model.number="target3Contracts" min="0" class="w-full border rounded px-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs">Exit Points</label>
+                                        <input type="number" x-model.number="target3Points" min="0" class="w-full border rounded px-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs">Ticks</label>
+                                        <div class="text-sm" x-text="target3Points * contract.ticksPerPoint"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Results -->
+                            <div class="border-t pt-2">
+                                <div class="text-sm space-y-1">
+                                    <div x-show="totalTargetContracts !== numContracts" class="text-xs text-amber-600 mb-1">
+                                        ⚠️ Target contracts (<span x-text="totalTargetContracts"></span>) ≠ Position size (<span x-text="numContracts"></span>)
+                                    </div>
+                                    <div class="bg-blue-50 p-2 rounded">
+                                        <div class="flex justify-between">
+                                            <span>Weighted Avg Exit:</span>
+                                            <span class="font-semibold"><span x-text="avgExitPoints.toFixed(2)"></span> pts (<span x-text="avgExitTicks.toFixed(0)"></span> ticks)</span>
+                                        </div>
+                                        <div class="flex justify-between mt-1">
+                                            <span>Effective R:R:</span>
+                                            <span class="font-semibold text-lg" x-text="blendedRR.toFixed(2) + ':1'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tick/Point Converter -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Quick Tick/Point Converter</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-sm">Ticks</label>
+                            <input type="number" x-model.number="converterTicks" class="w-full border rounded px-2">
+                            <div class="text-xs text-gray-600 mt-1">
+                                = <span x-text="(converterTicks / contract.ticksPerPoint).toFixed(2)"></span> points
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-sm">Points</label>
+                            <input type="number" x-model.number="converterPoints" class="w-full border rounded px-2">
+                            <div class="text-xs text-gray-600 mt-1">
+                                = <span x-text="converterPoints * contract.ticksPerPoint"></span> ticks
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-sm bg-gray-50 p-2 rounded">
+                        Value: $<span x-text="(converterTicks * contract.tickValue * numContracts).toFixed(2)"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Prop Firm & Projections -->
+            <div class="space-y-4">
+                <!-- Prop Firm Selection -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Prop Firm Evaluation</h3>
+                    <select x-model="selectedPropFirm" @change="updatePropFirmTarget()" class="w-full border rounded p-2 mb-3">
+                        <option value="custom">Custom Target</option>
+                        <optgroup label="TopstepTrader">
+                            <option value="topstep_50k">Topstep - $50K Express</option>
+                            <option value="topstep_100k">Topstep - $100K</option>
+                            <option value="topstep_150k">Topstep - $150K</option>
+                        </optgroup>
+                        <optgroup label="Elite Trader Funding">
+                            <option value="elite_25k">Elite - $25K</option>
+                            <option value="elite_50k">Elite - $50K</option>
+                            <option value="elite_100k">Elite - $100K</option>
+                            <option value="elite_150k">Elite - $150K</option>
+                        </optgroup>
+                        <optgroup label="Take Profit Trader">
+                            <option value="takeprofit_25k">Take Profit - $25K</option>
+                            <option value="takeprofit_50k">Take Profit - $50K</option>
+                            <option value="takeprofit_100k">Take Profit - $100K</option>
+                        </optgroup>
+                        <optgroup label="My Funded Futures">
+                            <option value="mff_25k">MFF - $25K</option>
+                            <option value="mff_50k">MFF - $50K</option>
+                            <option value="mff_100k">MFF - $100K</option>
+                            <option value="mff_150k">MFF - $150K</option>
+                        </optgroup>
+                        <optgroup label="Bluesky">
+                            <option value="bluesky_25k">Bluesky - $25K</option>
+                            <option value="bluesky_50k">Bluesky - $50K</option>
+                            <option value="bluesky_100k">Bluesky - $100K</option>
+                        </optgroup>
+                    </select>
+                    
+                    <div class="space-y-2">
+                        <div>
+                            <label class="text-sm">Profit Target</label>
+                            <input type="number" x-model.number="eaProfitTarget" class="w-full border rounded px-2">
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded">
+                            <div class="flex justify-between text-sm">
+                                <span>Days to Pass (1 Account)</span>
+                                <span class="font-semibold" x-text="daysToEATarget.toFixed(1)"></span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span>Days to Pass (All Accounts)</span>
+                                <span class="font-semibold" x-text="daysToEATargetAllAccounts.toFixed(1)"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="mt-3">
+                            <div class="text-xs text-gray-600 mb-1">Daily Progress to Target</div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full" 
+                                     :style="'width: ' + Math.min((netDailyGainTotal / eaProfitTarget * 100), 100) + '%'"></div>
+                            </div>
+                            <div class="text-xs text-center mt-1">
+                                <span x-text="((netDailyGainTotal / eaProfitTarget) * 100).toFixed(1)"></span>% per day
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profit Projections -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Profit Projections (All Accounts)</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Daily Total</span>
+                            <span class="font-semibold" :class="netDailyGainTotal >= 0 ? 'text-green-600' : 'text-red-600'" 
+                                  x-text="'$' + netDailyGainTotal.toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Weekly Total</span>
+                            <span class="font-semibold" x-text="'$' + (netDailyGainTotal * 5).toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Monthly Total (<span x-text="tradingDaysPerMonth"></span> days)</span>
+                            <span class="font-semibold" x-text="'$' + (netDailyGainTotal * tradingDaysPerMonth).toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Yearly Total (252 days)</span>
+                            <span class="font-semibold" x-text="'$' + (netDailyGainTotal * 252).toFixed(2)"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Expectancy Impact -->
+                    <div class="mt-3 pt-3 border-t">
+                        <div class="text-sm text-gray-600 mb-1">Based on Expectancy</div>
+                        <div class="bg-gray-50 p-2 rounded text-xs">
+                            <div>Expected value per trade: $<span x-text="expectancy.toFixed(2)"></span></div>
+                            <div>Win rate impact: <span x-text="winLossPercent"></span>% wins × <span x-text="rValue.toFixed(2)"></span>R</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Period -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2">Custom Period Projection</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="text-sm"># of Trading Days</label>
+                            <input type="number" x-model.number="customDays" class="w-full border rounded px-2">
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <div class="flex justify-between text-sm">
+                                <span>Per Account</span>
+                                <span x-text="'$' + (netDailyGain * customDays).toFixed(2)"></span>
+                            </div>
+                            <div class="flex justify-between font-bold">
+                                <span>All Accounts</span>
+                                <span x-text="'$' + (netDailyGainTotal * customDays).toFixed(2)"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
