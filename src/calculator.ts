@@ -44,24 +44,24 @@ function riskCalculator(): RiskCalculatorComponent {
         
         // Prop firm presets
         propFirmTargets: {
-            custom: { target: 6000 },
-            topstep_50k: { target: 3000 },
-            topstep_100k: { target: 6000 },
-            topstep_150k: { target: 9000 },
-            elite_25k: { target: 1500 },
-            elite_50k: { target: 2750 },
-            elite_100k: { target: 6000 },
-            elite_150k: { target: 9000 },
-            takeprofit_25k: { target: 1500 },
-            takeprofit_50k: { target: 3000 },
-            takeprofit_100k: { target: 6000 },
-            mff_25k: { target: 1250 },
-            mff_50k: { target: 2500 },
-            mff_100k: { target: 5000 },
-            mff_150k: { target: 7500 },
-            bluesky_25k: { target: 1500 },
-            bluesky_50k: { target: 3000 },
-            bluesky_100k: { target: 6250 }
+            custom: { target: 6000, dailyLimit: 1100, maxDrawdown: 2000 },
+            topstep_50k: { target: 3000, dailyLimit: 1100, maxDrawdown: 2000 },
+            topstep_100k: { target: 6000, dailyLimit: 2200, maxDrawdown: 3000 },
+            topstep_150k: { target: 9000, dailyLimit: 3300, maxDrawdown: 4500 },
+            elite_25k: { target: 1500, dailyLimit: 500, maxDrawdown: 1500 },
+            elite_50k: { target: 2750, dailyLimit: 1100, maxDrawdown: 2500 },
+            elite_100k: { target: 6000, dailyLimit: 2200, maxDrawdown: 3000 },
+            elite_150k: { target: 9000, dailyLimit: 3300, maxDrawdown: 4500 },
+            takeprofit_25k: { target: 1500, dailyLimit: 500, maxDrawdown: 1500 },
+            takeprofit_50k: { target: 3000, dailyLimit: 1100, maxDrawdown: 2000 },
+            takeprofit_100k: { target: 6000, dailyLimit: 2200, maxDrawdown: 3000 },
+            mff_25k: { target: 1250, dailyLimit: 375, maxDrawdown: 1500 },
+            mff_50k: { target: 2500, dailyLimit: 1100, maxDrawdown: 2500 },
+            mff_100k: { target: 5000, dailyLimit: 2200, maxDrawdown: 4000 },
+            mff_150k: { target: 7500, dailyLimit: 3300, maxDrawdown: 6000 },
+            bluesky_25k: { target: 1500, dailyLimit: 500, maxDrawdown: 1500 },
+            bluesky_50k: { target: 3000, dailyLimit: 1100, maxDrawdown: 2500 },
+            bluesky_100k: { target: 6250, dailyLimit: 2200, maxDrawdown: 5000 }
         } as PropFirmTargets,
         
         // User inputs
@@ -75,6 +75,8 @@ function riskCalculator(): RiskCalculatorComponent {
         numAccounts: 1,
         commissionPerRT: 1.35,
         eaProfitTarget: 6000,
+        eaDailyLimit: 1100,
+        eaMaxDrawdown: 2000,
         tradingDaysPerMonth: 21,
         customDays: 235,
         converterTicks: 0,
@@ -120,7 +122,10 @@ function riskCalculator(): RiskCalculatorComponent {
         // Update prop firm target
         updatePropFirmTarget(): void {
             if (this.selectedPropFirm !== 'custom') {
-                this.eaProfitTarget = this.propFirmTargets[this.selectedPropFirm].target;
+                const propFirm = this.propFirmTargets[this.selectedPropFirm];
+                this.eaProfitTarget = propFirm.target;
+                this.eaDailyLimit = propFirm.dailyLimit;
+                this.eaMaxDrawdown = propFirm.maxDrawdown;
             }
         },
         
@@ -335,6 +340,79 @@ function riskCalculator(): RiskCalculatorComponent {
         
         get blendedRR(): number {
             return this.ticksLost > 0 ? this.avgExitTicks / this.ticksLost : 0;
+        },
+        
+        // Risk Analysis calculations
+        get maxConsecutiveLosses(): number {
+            // Based on win rate, calculate probable consecutive losses
+            const lossRate = 1 - this.winRate;
+            if (lossRate <= 0) return 0;
+            
+            // 99% confidence level for consecutive losses
+            return Math.ceil(Math.log(0.01) / Math.log(lossRate));
+        },
+        
+        get maxDrawdownFromLosses(): number {
+            const drawdownPerAccount = this.maxConsecutiveLosses * this.maxTradeLoss;
+            const totalDrawdown = drawdownPerAccount * this.numAccounts;
+            
+            // Cap at daily limit if applicable
+            if (this.eaDailyLimit > 0) {
+                return Math.min(totalDrawdown, this.eaDailyLimit);
+            }
+            
+            return totalDrawdown;
+        },
+        
+        get tradesToDailyLimit(): number {
+            if (this.eaDailyLimit <= 0 || this.maxTradeLoss <= 0) return Infinity;
+            return Math.floor(this.eaDailyLimit / (this.maxTradeLoss + (this.commissionPerRT * this.numContracts)));
+        },
+        
+        get daysToBlowAccount(): number {
+            if (this.netDailyGainTotal >= 0) return Infinity;
+            
+            const dailyLoss = Math.abs(this.netDailyGainTotal);
+            return this.eaMaxDrawdown / dailyLoss;
+        },
+        
+        get riskOfRuin(): number {
+            // Risk of ruin calculation for prop firm account
+            if (this.winRate === 0 || this.rValue <= 0) return 1;
+            
+            const q = 1 - this.winRate;
+            const p = this.winRate;
+            const b = this.rValue;
+            
+            // Negative expectancy = certain ruin
+            if (this.expectancy <= 0) return 1;
+            
+            // Calculate based on number of losing trades to hit drawdown
+            const totalRisk = this.maxTradeLoss * this.numAccounts;
+            const tradesToRuin = Math.floor(this.eaMaxDrawdown / totalRisk);
+            
+            if (tradesToRuin <= 0) return 1;
+            
+            // Using the gambler's ruin formula
+            // When p*b > q (positive expectancy)
+            const ratio = q / (p * b);
+            if (ratio >= 1) return 1;
+            
+            const riskOfRuin = Math.pow(ratio, tradesToRuin);
+            
+            return Math.min(1, Math.max(0, riskOfRuin));
+        },
+        
+        get recommendedMaxContracts(): number {
+            // Based on 1% risk per trade of max drawdown
+            const onePercentRisk = this.eaMaxDrawdown * 0.01;
+            const maxLossPerContract = (this.ticksLost * this.contract.tickValue) + (2 * this.commissionPerRT); // Round trip commission
+            
+            return Math.max(1, Math.floor(onePercentRisk / maxLossPerContract));
+        },
+        
+        get isOversized(): boolean {
+            return this.numContracts > this.recommendedMaxContracts;
         },
         
         // Setup target presets

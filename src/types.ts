@@ -14,6 +14,8 @@ export type Contracts = Record<ContractSymbol, FuturesContract>;
 // Prop firm configuration
 export interface PropFirmTarget {
   target: number;
+  dailyLimit: number;
+  maxDrawdown: number;
 }
 
 export type PropFirmType = 
@@ -62,6 +64,8 @@ export interface BreakevenSimulation {
 export interface PropFirmSettings {
   selectedPropFirm: PropFirmType;
   eaProfitTarget: number;
+  eaDailyLimit: number;
+  eaMaxDrawdown: number;
 }
 
 // UI state
@@ -153,6 +157,13 @@ export interface RiskCalculatorComponent extends CalculatorState {
   readonly breakevenAdjustedWinRate: number;
   readonly breakevenScratchRate: number;
   readonly breakevenAdjustedExpectancy: number;
+  readonly maxConsecutiveLosses: number;
+  readonly maxDrawdownFromLosses: number;
+  readonly tradesToDailyLimit: number;
+  readonly daysToBlowAccount: number;
+  readonly riskOfRuin: number;
+  readonly recommendedMaxContracts: number;
+  readonly isOversized: boolean;
   
   // Methods
   init(): void;

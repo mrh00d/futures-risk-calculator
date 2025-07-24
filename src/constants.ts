@@ -103,34 +103,34 @@ export const FUTURES_CONTRACTS: Record<string, FuturesContract> = {
  * Prop firm profit targets
  */
 export const PROP_FIRM_TARGETS: Record<string, PropFirmTarget> = {
-  custom: { target: 6000 },
+  custom: { target: 6000, dailyLimit: 1100, maxDrawdown: 2000 },
   
   // TopStep
-  topstep_50k: { target: 3000 },
-  topstep_100k: { target: 6000 },
-  topstep_150k: { target: 9000 },
+  topstep_50k: { target: 3000, dailyLimit: 1100, maxDrawdown: 2000 },
+  topstep_100k: { target: 6000, dailyLimit: 2200, maxDrawdown: 3000 },
+  topstep_150k: { target: 9000, dailyLimit: 3300, maxDrawdown: 4500 },
   
   // Elite Trader Funding
-  elite_25k: { target: 1500 },
-  elite_50k: { target: 2750 },
-  elite_100k: { target: 6000 },
-  elite_150k: { target: 9000 },
+  elite_25k: { target: 1500, dailyLimit: 500, maxDrawdown: 1500 },
+  elite_50k: { target: 2750, dailyLimit: 1100, maxDrawdown: 2500 },
+  elite_100k: { target: 6000, dailyLimit: 2200, maxDrawdown: 3000 },
+  elite_150k: { target: 9000, dailyLimit: 3300, maxDrawdown: 4500 },
   
   // TakeProfit Trader
-  takeprofit_25k: { target: 1500 },
-  takeprofit_50k: { target: 3000 },
-  takeprofit_100k: { target: 6000 },
+  takeprofit_25k: { target: 1500, dailyLimit: 500, maxDrawdown: 1500 },
+  takeprofit_50k: { target: 3000, dailyLimit: 1100, maxDrawdown: 2000 },
+  takeprofit_100k: { target: 6000, dailyLimit: 2200, maxDrawdown: 3000 },
   
   // My Funded Futures
-  mff_25k: { target: 1250 },
-  mff_50k: { target: 2500 },
-  mff_100k: { target: 5000 },
-  mff_150k: { target: 7500 },
+  mff_25k: { target: 1250, dailyLimit: 375, maxDrawdown: 1500 },
+  mff_50k: { target: 2500, dailyLimit: 1100, maxDrawdown: 2500 },
+  mff_100k: { target: 5000, dailyLimit: 2200, maxDrawdown: 4000 },
+  mff_150k: { target: 7500, dailyLimit: 3300, maxDrawdown: 6000 },
   
   // BlueSky Trading
-  bluesky_25k: { target: 1500 },
-  bluesky_50k: { target: 3000 },
-  bluesky_100k: { target: 6250 }
+  bluesky_25k: { target: 1500, dailyLimit: 500, maxDrawdown: 1500 },
+  bluesky_50k: { target: 3000, dailyLimit: 1100, maxDrawdown: 2500 },
+  bluesky_100k: { target: 6250, dailyLimit: 2200, maxDrawdown: 5000 }
 };
 
 /**
