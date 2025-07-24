@@ -40,8 +40,8 @@
         });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link rel="stylesheet" href="dist/output.css">
-    <script src="calculator.js"></script>
+    <link rel="stylesheet" href="dist/output.css?v=1.0.0">
+    <script src="dist/calculator.min.js"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body x-data="riskCalculator()" x-init="init(); $store.darkMode.init()" class="bg-gray-100 dark:bg-gray-900 p-4 transition-colors">
@@ -87,8 +87,19 @@
                 </div>
             </div>
             
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-sm">
+            <!-- View Toggle -->
+            <div class="flex items-center justify-end mb-3">
+                <label class="flex items-center cursor-pointer">
+                    <span class="mr-2 text-sm text-gray-600 dark:text-gray-400">Detailed View</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" x-model="showDetailedView" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </label>
+            </div>
+            
+            <!-- Summary Stats Grid (shown when detailed view is off) -->
+            <div x-show="!showDetailedView" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 text-sm">
                 <div class="border p-2">
                     <div class="font-semibold">Accounts</div>
                     <div x-text="numAccounts" class="text-center text-lg font-bold"></div>
@@ -110,7 +121,10 @@
                     <div x-text="'$' + totalCommissions.toFixed(2)" class="text-center"></div>
                 </div>
                 <div class="border p-2">
-                    <div class="font-semibold">Net P/L (Total)</div>
+                    <div class="font-semibold">
+                        Net P/L (Total)
+                        <span x-show="useBreakevenStop" class="text-xs text-blue-600" title="Breakeven simulation active">BE</span>
+                    </div>
                     <div x-text="'$' + netDailyGainTotal.toFixed(2)" class="text-center font-bold" 
                          :class="netDailyGainTotal >= 0 ? 'text-green-600' : 'text-red-600'"></div>
                 </div>
@@ -121,6 +135,108 @@
                 <div class="border p-2">
                     <div class="font-semibold">Monthly Total</div>
                     <div x-text="'$' + (netDailyGainTotal * tradingDaysPerMonth).toFixed(2)" class="text-center"></div>
+                </div>
+            </div>
+            
+            <!-- Detailed Table View (shown when detailed view is on) -->
+            <div x-show="showDetailedView" class="overflow-x-auto">
+                <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700">
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Account</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Wins</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Losses</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Win Rate</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Gross P/L</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Commission</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Net P/L</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Weekly</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Monthly</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <template x-for="i in numAccounts" :key="i">
+                            <tr :class="i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/50' : ''">
+                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Account <span x-text="i"></span>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right" x-text="winningTrades"></td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right" x-text="losingTrades"></td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                    <span x-text="winLossPercent"></span>%
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                    $<span x-text="grossDailyGain.toFixed(2)"></span>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                    $<span x-text="(commissionPerRT * totalTrades * numContracts).toFixed(2)"></span>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-right" 
+                                    :class="netDailyGain >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    $<span x-text="netDailyGain.toFixed(2)"></span>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                    $<span x-text="(netDailyGain * 5).toFixed(2)"></span>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                    $<span x-text="(netDailyGain * tradingDaysPerMonth).toFixed(2)"></span>
+                                </td>
+                            </tr>
+                        </template>
+                        <!-- Total Row -->
+                        <tr class="bg-gray-100 dark:bg-gray-900 font-bold">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                Total (<span x-text="numAccounts"></span> accounts)
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right" x-text="winningTrades * numAccounts"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right" x-text="losingTrades * numAccounts"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                <span x-text="winLossPercent"></span>%
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                $<span x-text="grossDailyGainTotal.toFixed(2)"></span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                $<span x-text="totalCommissions.toFixed(2)"></span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-lg text-right" 
+                                :class="netDailyGainTotal >= 0 ? 'text-green-600' : 'text-red-600'">
+                                $<span x-text="netDailyGainTotal.toFixed(2)"></span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                $<span x-text="(netDailyGainTotal * 5).toFixed(2)"></span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
+                                $<span x-text="(netDailyGainTotal * tradingDaysPerMonth).toFixed(2)"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Progress Indicators Below Table -->
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Daily Progress to Target</div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" 
+                                 :style="'width: ' + Math.min((netDailyGainTotal / eaProfitTarget * 100), 100) + '%'"></div>
+                        </div>
+                        <div class="text-xs text-center mt-1">
+                            <span x-text="((netDailyGainTotal / eaProfitTarget) * 100).toFixed(1)"></span>% per day
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Days to Target</div>
+                        <div class="text-lg font-bold text-center">
+                            <span x-text="daysToEATargetAllAccounts.toFixed(1)"></span> days
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Expectancy Per Trade</div>
+                        <div class="text-lg font-bold text-center" :class="expectancy >= 0 ? 'text-green-600' : 'text-red-600'">
+                            $<span x-text="expectancy.toFixed(2)"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -394,6 +510,100 @@
                                             <span>Effective R:R:</span>
                                             <span class="font-semibold text-lg" x-text="blendedRR.toFixed(2) + ':1'"></span>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakeven Stop Simulation -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h3 class="font-bold mb-2 dark:text-gray-100">Breakeven Stop Simulation</h3>
+                    
+                    <!-- Enable Toggle -->
+                    <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-medium">Simulate Breakeven Stop Strategy</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="useBreakevenStop" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">
+                            Simulate the impact of moving your stop to breakeven after reaching a profit target
+                        </p>
+                    </div>
+                    
+                    <div x-show="useBreakevenStop" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-sm">BE Trigger (Points)</label>
+                                <input type="number" x-model.number="breakevenTriggerPoints" 
+                                       min="1" step="1"
+                                       class="w-full border rounded px-2">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                    Move stop to BE after <span x-text="breakevenTriggerPoints"></span> points profit
+                                    (<span x-text="(calculateBreakevenReachRate() * 100).toFixed(0)"></span>% of winners reach this)
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm">Win Rate After BE</label>
+                                <input type="number" x-model.number="breakevenWinRate" 
+                                       min="0" max="1" step="0.05"
+                                       class="w-full border rounded px-2">
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                    <span x-text="(breakevenWinRate * 100).toFixed(0)"></span>% of trades continue to target
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Results -->
+                        <div class="border-t pt-3">
+                            <h4 class="text-sm font-semibold mb-2">Impact Analysis</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">Original Win Rate</div>
+                                        <div class="font-semibold"><span x-text="(winRate * 100).toFixed(1)"></span>%</div>
+                                    </div>
+                                    <div class="bg-blue-50 dark:bg-gray-700 p-2 rounded">
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">Adjusted Win Rate</div>
+                                        <div class="font-semibold text-blue-600"><span x-text="(breakevenAdjustedWinRate * 100).toFixed(1)"></span>%</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-yellow-50 dark:bg-gray-700 p-2 rounded">
+                                    <div class="flex justify-between">
+                                        <span class="text-xs">Trades Reaching BE</span>
+                                        <span class="font-semibold"><span x-text="(calculateBreakevenReachRate() * winRate * 100).toFixed(1)"></span>%</span>
+                                    </div>
+                                    <div class="flex justify-between mt-1">
+                                        <span class="text-xs">Scratched at BE</span>
+                                        <span class="font-semibold"><span x-text="(breakevenScratchRate * 100).toFixed(1)"></span>%</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">Original Expectancy</div>
+                                        <div class="font-semibold">$<span x-text="expectancy.toFixed(2)"></span></div>
+                                    </div>
+                                    <div class="bg-blue-50 dark:bg-gray-700 p-2 rounded">
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">BE Adjusted Expectancy</div>
+                                        <div class="font-semibold" :class="breakevenAdjustedExpectancy >= 0 ? 'text-green-600' : 'text-red-600'">
+                                            $<span x-text="breakevenAdjustedExpectancy.toFixed(2)"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                                    <div class="flex justify-between">
+                                        <span>Expectancy Change</span>
+                                        <span class="font-semibold" :class="(breakevenAdjustedExpectancy - expectancy) >= 0 ? 'text-green-600' : 'text-red-600'">
+                                            <span x-text="((breakevenAdjustedExpectancy - expectancy) >= 0 ? '+' : '') + ((breakevenAdjustedExpectancy - expectancy)).toFixed(2)"></span>
+                                            (<span x-text="expectancy !== 0 ? (((breakevenAdjustedExpectancy - expectancy) / Math.abs(expectancy)) * 100).toFixed(1) : '0'"></span>%)
+                                        </span>
                                     </div>
                                 </div>
                             </div>
