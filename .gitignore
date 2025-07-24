@@ -4,7 +4,7 @@ package-lock.json
 
 # Build output - Note: You may want to commit dist/output.css for Cloudflare Pages
 # If you have a build command in Cloudflare Pages, uncomment the line below
-dist/
+# dist/
 
 # Environment files
 .env

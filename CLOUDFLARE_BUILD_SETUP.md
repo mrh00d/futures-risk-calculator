@@ -1,11 +1,10 @@
 # Cloudflare Pages Build Setup
 
-This document explains how to deploy the Futures Trading Risk Management Calculator to Cloudflare Pages with proper Tailwind CSS builds.
+This document explains how to deploy the ProfitPath Calculator (TypeScript version) to Cloudflare Pages.
 
-## Issues Fixed
+## Project Structure
 
-1. **Alpine.js Initialization**: Fixed the order of script loading to ensure calculator.js loads before Alpine.js initializes
-2. **Tailwind CSS Production Build**: Replaced Tailwind CDN with a proper build process
+The project uses TypeScript and requires building both TypeScript and Tailwind CSS files.
 
 ## Deployment Options
 
@@ -16,15 +15,16 @@ This document explains how to deploy the Futures Trading Risk Management Calcula
    npm install
    ```
 
-2. Build the CSS:
+2. Build both TypeScript and CSS:
    ```bash
    npm run build
    ```
 
-3. Commit the built CSS file:
+3. Commit the built files:
    ```bash
-   git add dist/output.css
-   git commit -m "Build Tailwind CSS for production"
+   git add dist/
+   git commit -m "Build TypeScript and CSS for production"
+   git push
    ```
 
 4. In Cloudflare Pages settings:
@@ -34,7 +34,7 @@ This document explains how to deploy the Futures Trading Risk Management Calcula
 
 ### Option 2: Build on Cloudflare Pages
 
-1. Ensure `dist/` is in `.gitignore` (uncomment the line)
+1. Ensure `dist/` is in `.gitignore`
 
 2. In Cloudflare Pages settings:
    - Build command: `npm install && npm run build`
@@ -47,11 +47,17 @@ This document explains how to deploy the Futures Trading Risk Management Calcula
 ```
 /
 ├── src/
+│   ├── calculator.ts     # Main TypeScript calculator logic
+│   ├── types.ts          # TypeScript type definitions
+│   ├── constants.ts      # Constants and configuration
+│   ├── utils.ts          # Utility functions
+│   ├── index.ts          # Entry point for bundling
 │   └── input.css         # Tailwind input file with custom styles
 ├── dist/
+│   ├── calculator.min.js # Built TypeScript bundle (generated)
 │   └── output.css        # Built CSS file (generated)
 ├── index.html            # Main HTML file
-├── calculator.js         # Alpine.js components
+├── tsconfig.json         # TypeScript configuration
 ├── tailwind.config.js    # Tailwind configuration
 ├── postcss.config.js     # PostCSS configuration
 └── package.json          # Build scripts and dependencies
@@ -59,25 +65,19 @@ This document explains how to deploy the Futures Trading Risk Management Calcula
 
 ## Build Scripts
 
-- `npm run build`: Build CSS for production (minified)
-- `npm run dev`: Watch mode for development
-- `npm run build:css`: Direct Tailwind build command
+- `npm run build`: Builds both TypeScript and CSS for production
+- `npm run build:ts`: Compiles TypeScript and creates minified bundle
+- `npm run build:css`: Builds Tailwind CSS (minified)
+- `npm run dev`: Watches TypeScript files for changes
+- `npm run dev:css`: Watches CSS files for changes
 
-## Changes Made
+## Important Notes
 
-1. **index.html**:
-   - Moved `calculator.js` before Alpine.js initialization
-   - Replaced Tailwind CDN with link to `dist/output.css`
-   - Removed inline Tailwind config
-
-2. **package.json**:
-   - Added Tailwind CSS, PostCSS, and Autoprefixer as dev dependencies
-   - Added build scripts for CSS compilation
-
-3. **New Files**:
-   - `tailwind.config.js`: Tailwind configuration with content paths and dark mode
-   - `postcss.config.js`: PostCSS configuration for Tailwind
-   - `src/input.css`: Source CSS with Tailwind directives and custom styles
+1. **index.html Location**: The `index.html` file must remain in the root directory (not in `/dist`)
+2. **Asset Paths**: The index.html references assets in the `dist/` folder:
+   - `<script src="dist/calculator.min.js"></script>`
+   - `<link rel="stylesheet" href="dist/output.css">`
+3. **Build Output**: Always use `/` as the build output directory in Cloudflare, NOT `/dist`
 
 ## Testing Locally
 

@@ -19,4 +19,6 @@
   Expires: 0
 
 /dist/*
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0

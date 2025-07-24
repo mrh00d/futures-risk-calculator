@@ -27,7 +27,7 @@ html = html.replace(
 
 // Update JS script
 html = html.replace(
-  /(<script\s+src="calculator\.js)(\?v=[^"]*)?(")/,
+  /(<script\s+src="dist\/calculator\.min\.js)(\?v=[^"]*)?(")/,
   `$1?v=${version}$3`
 );
 
