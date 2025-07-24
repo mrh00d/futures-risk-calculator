@@ -484,6 +484,15 @@ function riskCalculator(): RiskCalculatorComponent {
                 
                 allButtons.forEach((btn: Element) => (btn as HTMLElement).style.display = '');
                 
+                // Add watermark
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = 'rgba(0, 169, 232, 0.6)';
+                    ctx.textAlign = 'right';
+                    ctx.fillText('Created with ProfitPath by ProfitPros', canvas.width - 20, canvas.height - 20);
+                }
+
                 const link = document.createElement('a');
                 link.download = `profitpath-${this.selectedContract}-${new Date().toISOString().split('T')[0]}.png`;
                 link.href = canvas.toDataURL();

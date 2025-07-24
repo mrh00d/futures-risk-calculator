@@ -1,0 +1,92 @@
+<!-- Risk Profile Indicator Component -->
+<div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg p-4 border-2"
+     :class="{
+       'border-[#00D9A3]': riskProfile === 'conservative',
+       'border-[#00A8E8]': riskProfile === 'balanced',
+       'border-[#0084C7]': riskProfile === 'aggressive'
+     }">
+  
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="font-bold text-lg">Your Risk Profile</h3>
+    <div class="text-3xl">
+      <span x-show="riskProfile === 'conservative'">🐻</span>
+      <span x-show="riskProfile === 'balanced'">⚖️</span>
+      <span x-show="riskProfile === 'aggressive'">🐂</span>
+    </div>
+  </div>
+  
+  <!-- Profile Badge -->
+  <div class="text-center p-3 rounded-lg mb-3"
+       :class="{
+         'bg-[#00D9A3]/10 text-[#00D9A3]': riskProfile === 'conservative',
+         'bg-[#00A8E8]/10 text-[#00A8E8]': riskProfile === 'balanced',
+         'bg-[#0084C7]/10 text-[#0084C7]': riskProfile === 'aggressive'
+       }">
+    <div class="font-bold text-xl" x-text="riskProfileLabels[riskProfile]"></div>
+    <div class="text-sm mt-1" x-text="riskProfileMessages[riskProfile]"></div>
+  </div>
+  
+  <!-- Risk Metrics -->
+  <div class="space-y-2 text-sm">
+    <div class="flex justify-between">
+      <span>Risk per Trade</span>
+      <span class="font-bold" x-text="((avgLossAmount / accountBalance) * 100).toFixed(1) + '%'"></span>
+    </div>
+    <div class="flex justify-between">
+      <span>Max Drawdown (Monthly)</span>
+      <span class="font-bold" x-text="'-' + (maxMonthlyDrawdown).toFixed(1) + '%'"></span>
+    </div>
+    <div class="flex justify-between">
+      <span>Recovery Factor</span>
+      <span class="font-bold" x-text="recoveryFactor.toFixed(2)"></span>
+    </div>
+  </div>
+  
+  <!-- ProfitPros Recommendation -->
+  <div class="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+    <div class="flex items-start space-x-2">
+      <span class="text-yellow-600 dark:text-yellow-500">💡</span>
+      <div class="text-xs">
+        <div class="font-semibold mb-1">ProfitPros Tip:</div>
+        <div x-show="riskProfile === 'conservative'">
+          Great job keeping risk low! This is the path to long-term consistency. Consider gradually increasing position size as you build confidence.
+        </div>
+        <div x-show="riskProfile === 'balanced'">
+          You're in the sweet spot! This risk level allows for growth while maintaining emotional control. Keep monitoring your psychology.
+        </div>
+        <div x-show="riskProfile === 'aggressive'">
+          High risk requires exceptional discipline. Consider scaling back to 2-3% per trade. Remember: surviving drawdowns is key to long-term success.
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Habit Tracker -->
+  <div class="mt-3 flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded">
+    <span class="text-sm">Consistency Streak</span>
+    <div class="flex items-center space-x-1">
+      <span class="text-2xl">🔥</span>
+      <span class="font-bold text-lg" x-text="consistencyStreak"></span>
+      <span class="text-sm text-gray-600">days</span>
+    </div>
+  </div>
+</div>
+
+<!-- Psychological Indicators -->
+<div class="mt-4 grid grid-cols-3 gap-2 text-center">
+  <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow">
+    <div class="text-2xl mb-1">🧠</div>
+    <div class="text-xs text-gray-600 dark:text-gray-400">Discipline</div>
+    <div class="font-bold" x-text="disciplineScore + '%'"></div>
+  </div>
+  <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow">
+    <div class="text-2xl mb-1">⚡</div>
+    <div class="text-xs text-gray-600 dark:text-gray-400">Focus</div>
+    <div class="font-bold" x-text="focusScore + '%'"></div>
+  </div>
+  <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow">
+    <div class="text-2xl mb-1">💪</div>
+    <div class="text-xs text-gray-600 dark:text-gray-400">Confidence</div>
+    <div class="font-bold" x-text="confidenceScore + '%'"></div>
+  </div>
+</div>
